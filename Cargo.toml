@@ -1,0 +1,15 @@
+[package]
+name = "dioxus-utils"
+version = "0.1.0"
+edition = "2021"
+
+
+[features]
+default = []
+fullstack = ["dioxus/fullstack"]
+
+
+[dependencies]
+dioxus = { version = "0.5" }
+web-sys = { version = "*", features = ["Storage"] }
+js-sys = { version = "*" }
