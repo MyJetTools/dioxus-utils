@@ -33,6 +33,6 @@ impl GlobalAppSettings {
             .into();
 
         #[cfg(feature = "server")]
-        return crate::web::WebLocalStorage::new();
+        return super::WebLocalStorage::new();
     }
 }
