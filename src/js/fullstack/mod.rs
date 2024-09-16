@@ -11,6 +11,9 @@ pub use set_focus_server_mock::*;
 mod web_local_storage;
 pub use web_local_storage::*;
 
+mod eval;
+pub use eval::*;
+
 pub struct GlobalAppSettings {
     href: String,
 }
