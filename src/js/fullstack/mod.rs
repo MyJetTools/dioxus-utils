@@ -16,6 +16,8 @@ pub use eval::*;
 mod now_date_time;
 pub use now_date_time::*;
 
+mod console_log;
+pub use console_log::*;
 pub struct GlobalAppSettings {
     href: String,
 }

@@ -7,6 +7,6 @@ pub fn eval(js: &str) -> JsValue {
 }
 
 #[cfg(feature = "server")]
-pub fn eval(js: &str) -> JsValue {
+pub fn eval(_js: &str) -> JsValue {
     JsValue::NULL
 }
