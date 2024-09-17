@@ -14,3 +14,4 @@ server = []
 dioxus = { version = "0.5" }
 web-sys = { version = "*", features = ["Storage"] }
 js-sys = { version = "*" }
+rust-extensions = { tag = "0.1.4", git = "https://github.com/MyJetTools/rust-extensions.git" }

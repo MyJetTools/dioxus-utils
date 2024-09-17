@@ -13,6 +13,8 @@ pub use web_local_storage::*;
 
 mod eval;
 pub use eval::*;
+mod now_date_time;
+pub use now_date_time::*;
 
 pub struct GlobalAppSettings {
     href: String,
