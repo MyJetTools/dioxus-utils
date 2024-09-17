@@ -20,6 +20,11 @@ impl WebLocalStorage {
         #[cfg(not(feature = "server"))]
         self.storage.set(_key, _value).unwrap();
     }
+
+    pub fn delete(&self, _key: &str) {
+        #[cfg(not(feature = "server"))]
+        self.storage.delete(_key).unwrap();
+    }
 }
 
 #[cfg(not(feature = "server"))]
