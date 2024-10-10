@@ -18,6 +18,9 @@ pub use now_date_time::*;
 
 mod console_log;
 pub use console_log::*;
+
+mod reload_page;
+pub use reload_page::*;
 pub struct GlobalAppSettings {
     href: String,
     origin: String,
