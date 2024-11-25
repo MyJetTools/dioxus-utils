@@ -9,6 +9,10 @@ pub enum DataState<T: Debug> {
 }
 
 impl<T: Debug> DataState<T> {
+    pub fn new() -> Self {
+        DataState::None
+    }
+
     pub fn is_none(&self) -> bool {
         match self {
             DataState::None => true,
