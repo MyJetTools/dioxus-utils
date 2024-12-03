@@ -27,6 +27,13 @@ impl<T: Debug> DataState<T> {
         }
     }
 
+    pub fn unwrap_as_loaded(&self) -> &T {
+        match self {
+            DataState::Loaded(value) => value,
+            _ => panic!("DataState is not loaded"),
+        }
+    }
+
     pub fn to_not_loaded_cases(&self) -> Option<NotLoadedCases> {
         match self {
             DataState::None => NotLoadedCases::None.into(),
