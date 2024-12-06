@@ -1,7 +1,7 @@
 use rust_extensions::date_time::DateTimeAsMicroseconds;
 #[cfg(feature = "server")]
 pub fn now_date_time() -> DateTimeAsMicroseconds {
-    DateTimeAsMicroseconds::now();
+    DateTimeAsMicroseconds::now()
 }
 
 #[cfg(not(feature = "server"))]
