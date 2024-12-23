@@ -21,6 +21,10 @@ pub use console_log::*;
 
 mod reload_page;
 pub use reload_page::*;
+
+mod sleep;
+pub use sleep::*;
+
 pub struct GlobalAppSettings {
     href: String,
     origin: String,
