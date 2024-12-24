@@ -43,6 +43,10 @@ impl<T: Debug> DataState<T> {
         }
     }
 
+    pub fn set_value(&mut self, value: T) {
+        *self = DataState::Loaded(value);
+    }
+
     pub fn as_ref(&self) -> &Self {
         self
     }
