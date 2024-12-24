@@ -27,6 +27,13 @@ impl<T: Debug> DataState<T> {
         }
     }
 
+    pub fn try_unwrap_as_loaded(&self) -> Option<&T> {
+        match self {
+            DataState::Loaded(value) => value.into(),
+            _ => None,
+        }
+    }
+
     pub fn unwrap_as_loaded(&self) -> &T {
         match self {
             DataState::Loaded(value) => value,
@@ -51,6 +58,15 @@ impl<T: Debug> DataState<T> {
         match self {
             DataState::Loaded(value) => Some(value),
             _ => None,
+        }
+    }
+
+    pub fn unwrap_as_loaded_mut(&mut self) -> Option<&mut T> {
+        match self {
+            DataState::Loaded(value) => Some(value),
+            _ => {
+                panic!("Can not unwrap value. DataState is in state {:?}", self);
+            }
         }
     }
 
