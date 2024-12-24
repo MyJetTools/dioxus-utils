@@ -33,6 +33,10 @@ impl<T: Debug> DataState<T> {
         *self = DataState::Error(format!("{:?}", err));
     }
 
+    pub fn set_none(&mut self) {
+        *self = DataState::None;
+    }
+
     pub fn is_loading(&self) -> bool {
         match self {
             DataState::Loading => true,
