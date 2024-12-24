@@ -47,6 +47,13 @@ impl<T: Debug> DataState<T> {
         *self = DataState::Loaded(value);
     }
 
+    pub fn try_unwrap_as_loaded_mut(&mut self) -> Option<&mut T> {
+        match self {
+            DataState::Loaded(value) => Some(value),
+            _ => None,
+        }
+    }
+
     pub fn as_ref(&self) -> &Self {
         self
     }
