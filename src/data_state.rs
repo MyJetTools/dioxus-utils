@@ -1,3 +1,4 @@
+use core::panic;
 use std::fmt::Debug;
 
 #[derive(Debug)]
@@ -61,11 +62,14 @@ impl<T: Debug> DataState<T> {
         }
     }
 
-    pub fn unwrap_as_loaded_mut(&mut self) -> Option<&mut T> {
+    pub fn unwrap_as_loaded_mut(&mut self) -> &mut T {
         match self {
-            DataState::Loaded(value) => Some(value),
+            DataState::Loaded(value) => value,
             _ => {
-                panic!("Can not unwrap value. DataState is in state {:?}", self);
+                panic!(
+                    "Trying unwrap data state as loaded but it is in state {:?}",
+                    self
+                );
             }
         }
     }
