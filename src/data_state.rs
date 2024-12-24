@@ -21,6 +21,10 @@ impl<T: Debug> DataState<T> {
         }
     }
 
+    pub fn set_loading(&mut self) {
+        *self = DataState::Loading;
+    }
+
     pub fn is_loading(&self) -> bool {
         match self {
             DataState::Loading => true,
