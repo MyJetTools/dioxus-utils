@@ -28,6 +28,13 @@ impl<T: Debug> DataState<T> {
         }
     }
 
+    pub fn has_value_loaded(&self) -> bool {
+        match self {
+            DataState::Loaded(_) => true,
+            _ => false,
+        }
+    }
+
     pub fn try_unwrap_as_loaded(&self) -> Option<&T> {
         match self {
             DataState::Loaded(value) => value.into(),
