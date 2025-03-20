@@ -102,13 +102,12 @@ impl<T: Debug> DataState<T> {
     }
 }
 
-/*
-impl<T: Debug> From<T> for DataState<T> {
-    fn from(value: T) -> Self {
-        Self::Loaded(value)
+impl<T: Debug> Default for DataState<T> {
+    fn default() -> Self {
+        Self::None
     }
 }
- */
+
 #[derive(Debug, Clone)]
 pub enum NotLoadedCases {
     None,
