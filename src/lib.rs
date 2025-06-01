@@ -3,3 +3,5 @@ pub extern crate js_sys;
 pub extern crate web_sys;
 mod data_state;
 pub use data_state::*;
+mod dialog_value;
+pub use dialog_value::*;
