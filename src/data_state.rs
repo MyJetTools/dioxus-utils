@@ -100,8 +100,8 @@ impl<T: Debug> DataState<T> {
         }
     }
 
-    pub fn as_ref(&self) -> &Self {
-        self
+    pub fn as_ref(&self) -> &DataStateInner<T> {
+        &self.inner
     }
 }
 
