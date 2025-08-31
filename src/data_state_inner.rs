@@ -2,21 +2,21 @@ use core::panic;
 use std::fmt::Debug;
 
 #[derive(Debug)]
-pub enum DataStateInner<T: Debug> {
+pub enum RenderState<T: Debug> {
     None,
     Loading,
     Loaded(T),
     Error(String),
 }
 
-impl<T: Debug> DataStateInner<T> {
+impl<T: Debug> RenderState<T> {
     pub fn new() -> Self {
-        DataStateInner::None
+        RenderState::None
     }
 
     pub fn is_none(&self) -> bool {
         match self {
-            DataStateInner::None => true,
+            RenderState::None => true,
             _ => false,
         }
     }

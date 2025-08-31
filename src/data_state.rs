@@ -1,18 +1,18 @@
 use core::panic;
 use std::fmt::Debug;
 
-use crate::DataStateInner;
+use crate::RenderState;
 
 #[derive(Debug)]
 pub struct DataState<T: Debug> {
-    inner: DataStateInner<T>,
+    inner: RenderState<T>,
     pub had_data_loaded_once: bool,
 }
 
 impl<T: Debug> DataState<T> {
     pub fn new() -> Self {
         Self {
-            inner: DataStateInner::None,
+            inner: RenderState::None,
             had_data_loaded_once: false,
         }
     }
@@ -34,7 +34,7 @@ impl<T: Debug> DataState<T> {
     }
 
     pub fn reset(&mut self) {
-        self.inner = DataStateInner::None;
+        self.inner = RenderState::None;
     }
 
     pub fn is_loading(&self) -> bool {
@@ -47,51 +47,51 @@ impl<T: Debug> DataState<T> {
 
     pub fn try_unwrap_as_loaded(&self) -> Option<&T> {
         match &self.inner {
-            DataStateInner::Loaded(value) => value.into(),
+            RenderState::Loaded(value) => value.into(),
             _ => None,
         }
     }
 
     pub fn unwrap_as_loaded(&self) -> &T {
         match &self.inner {
-            DataStateInner::Loaded(value) => value,
+            RenderState::Loaded(value) => value,
             _ => panic!("DataState is not loaded"),
         }
     }
 
     pub fn to_not_loaded_cases(&self) -> Option<NotLoadedCases> {
         match &self.inner {
-            DataStateInner::None => NotLoadedCases::None.into(),
-            DataStateInner::Loading => NotLoadedCases::Loading.into(),
-            DataStateInner::Loaded(_) => None,
-            DataStateInner::Error(_) => None,
+            RenderState::None => NotLoadedCases::None.into(),
+            RenderState::Loading => NotLoadedCases::Loading.into(),
+            RenderState::Loaded(_) => None,
+            RenderState::Error(_) => None,
         }
     }
 
     pub fn set_value(&mut self, value: T) {
-        self.inner = DataStateInner::Loaded(value);
+        self.inner = RenderState::Loaded(value);
         self.had_data_loaded_once = true;
     }
 
     pub fn try_unwrap_as_loaded_mut(&mut self) -> Option<&mut T> {
         match &mut self.inner {
-            DataStateInner::Loaded(value) => Some(value),
+            RenderState::Loaded(value) => Some(value),
             _ => None,
         }
     }
 
     pub fn unwrap_as_loaded_mut(&mut self) -> &mut T {
         match &mut self.inner {
-            DataStateInner::Loaded(value) => {
+            RenderState::Loaded(value) => {
                 return value;
             }
-            DataStateInner::None => {
+            RenderState::None => {
                 panic!("Trying unwrap data state as loaded but it is in state None");
             }
-            DataStateInner::Loading => {
+            RenderState::Loading => {
                 panic!("Trying unwrap data state as loaded but it is in state Loading");
             }
-            DataStateInner::Error(err) => {
+            RenderState::Error(err) => {
                 panic!(
                     "Trying unwrap data state as loaded but it is in state Error: {:?}",
                     err
@@ -100,7 +100,7 @@ impl<T: Debug> DataState<T> {
         }
     }
 
-    pub fn as_ref(&self) -> &DataStateInner<T> {
+    pub fn as_ref(&self) -> &RenderState<T> {
         &self.inner
     }
 }
