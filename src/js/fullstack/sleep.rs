@@ -7,4 +7,6 @@ pub async fn sleep(duration: Duration) {
 }
 
 #[cfg(feature = "server")]
-pub async fn sleep(_duration: Duration) {}
+pub async fn sleep(duration: Duration) {
+    tokio::time::sleep(duration).await;
+}
