@@ -17,6 +17,13 @@ impl<T: Debug> DataState<T> {
         }
     }
 
+    pub fn new_as_loaded(value: T) -> Self {
+        Self {
+            inner: RenderState::Loaded(value),
+            had_data_loaded_once: true,
+        }
+    }
+
     pub fn is_none(&self) -> bool {
         self.inner.is_none()
     }
