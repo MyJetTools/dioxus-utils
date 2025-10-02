@@ -7,3 +7,7 @@ mod dialog_value;
 pub use dialog_value::*;
 mod data_state_inner;
 pub use data_state_inner::*;
+mod console_log;
+pub use console_log::*;
+mod eval;
+pub use eval::*;

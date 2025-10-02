@@ -6,7 +6,7 @@ pub fn now_date_time() -> DateTimeAsMicroseconds {
 
 #[cfg(not(feature = "server"))]
 pub fn now_date_time() -> DateTimeAsMicroseconds {
-    let result = super::eval("new Date().toISOString()");
+    let result = crate::eval("new Date().toISOString()");
 
     let result = result.as_string();
 
