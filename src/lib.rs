@@ -11,3 +11,5 @@ mod console_log;
 pub use console_log::*;
 mod eval;
 pub use eval::*;
+mod generate_uuid;
+pub use generate_uuid::*;
