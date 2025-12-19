@@ -1,7 +1,7 @@
 use rust_extensions::StrOrString;
 
 #[cfg(not(feature = "server"))]
-pub fn console_log<'s>(message: impl Into<rust_extensions::StrOrString<'s>>) {
+pub fn console_log<'s>(message: impl Into<StrOrString<'s>>) {
     let message = message.into();
     let escaped_message = escape_for_java_script_string(message.as_str());
     let js = format!(
