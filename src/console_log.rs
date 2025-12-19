@@ -1,6 +1,9 @@
+use rust_extensions::StrOrString;
+
 #[cfg(not(feature = "server"))]
-pub fn console_log(message: &str) {
-    let escaped_message = escape_for_java_script_string(message);
+pub fn console_log<'s>(message: impl Into<rust_extensions::StrOrString<'s>>) {
+    let message = message.into();
+    let escaped_message = escape_for_java_script_string(message.as_str());
     let js = format!(
         r#"
         console.log('{}');
@@ -12,10 +15,12 @@ pub fn console_log(message: &str) {
 }
 
 #[cfg(feature = "server")]
-pub fn console_log(message: &str) {
-    println!("{}", message);
+pub fn console_log<'s>(message: impl Into<StrOrString<'s>>) {
+    let message = message.into();
+    println!("{}", message.as_str());
 }
 
+#[cfg(not(feature = "server"))]
 fn escape_for_java_script_string(message: &str) -> String {
     let mut result = String::with_capacity(message.len());
 

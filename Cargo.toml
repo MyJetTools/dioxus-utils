@@ -7,7 +7,7 @@ edition = "2021"
 [features]
 default = []
 fullstack = ["dioxus/fullstack"]
-server = ["tokio/time"]
+server = ["tokio/time", "uuid"]
 
 
 [dependencies]
@@ -18,3 +18,4 @@ rust-extensions = { tag = "0.1.5", git = "https://github.com/MyJetTools/rust-ext
 gloo-timers = { version = "*", features = ["futures"] }
 
 tokio = { version = "*", optional = true }
+uuid = { version = "*", features = ["v4"], optional = true }

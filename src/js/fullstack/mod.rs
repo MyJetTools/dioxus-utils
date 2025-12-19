@@ -11,9 +11,6 @@ pub use set_focus_server_mock::*;
 mod web_local_storage;
 pub use web_local_storage::*;
 
-mod now_date_time;
-pub use now_date_time::*;
-
 mod reload_page;
 pub use reload_page::*;
 

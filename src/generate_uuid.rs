@@ -8,5 +8,5 @@ pub fn generate_uuid() -> String {
 
 #[cfg(feature = "server")]
 pub fn generate_uuid() -> String {
-    String::new()
+    uuid::Uuid::new_v4().to_string()
 }
