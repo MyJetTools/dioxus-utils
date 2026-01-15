@@ -14,6 +14,166 @@ A comprehensive utility library for Dioxus applications providing state manageme
 - **Fullstack Support**: Client/server compatible utilities for focus management, local storage, page reload, and async sleep
 - **Global Settings**: Access to window location and local storage through `GlobalAppSettings`
 
+## Usage in this repo
+
+This project uses a subset of `dioxus-utils` APIs. The examples below mirror the exact
+patterns in the codebase to reduce drift.
+
+### Data loading with `DataState` / `RenderState`
+
+Best practice here is to keep loading logic in a `get_data` helper and keep the
+component focused on rendering:
+
+```rust
+use dioxus::prelude::*;
+
+#[component]
+pub fn RenderSettingsPage() -> Element {
+    let cs = use_signal(|| VadSettingsState::default());
+    let cs_ra = cs.read();
+
+    let input_data = match get_data(cs, &*cs_ra) {
+        Ok(input_data) => input_data,
+        Err(err) => return err,
+    };
+
+    render_vad_settings(cs, input_data)
+}
+
+fn get_data<'s>(
+    mut cs: Signal<VadSettingsState>,
+    cs_ra: &'s VadSettingsState,
+) -> Result<&'s VadSettingsData, Element> {
+    match cs_ra.data.as_ref() {
+        dioxus_utils::RenderState::None => {
+            let lang = cs_ra.lang;
+            spawn(async move {
+                cs.write().data.set_loading();
+                let data = crate::api::vad_settings::get_vad_settings(lang).await;
+                match data {
+                    Ok(data) => cs.write().set_data(data),
+                    Err(err) => cs.write().data.set_error(err.to_string()),
+                }
+            });
+            Err(crate::components::loading())
+        }
+        dioxus_utils::RenderState::Loading => Err(crate::components::loading()),
+        dioxus_utils::RenderState::Loaded(data) => Ok(data),
+        dioxus_utils::RenderState::Error(err) => {
+            Err(crate::components::loading_data_error(err))
+        }
+    }
+}
+```
+
+After mutations (save/delete), the code resets the data so it reloads:
+
+```rust
+state.write().data.reset();
+```
+
+#### DataState helpers used here
+
+Some pages use additional helpers beyond `set_value`:
+
+```rust
+// Mark data as loaded without changing the payload type
+state.write().data.set_loaded(());
+
+// Read only when loaded, otherwise fall back
+let Some(data) = state.read().data.try_unwrap_as_loaded() else {
+    return vec![];
+};
+
+// Guard validation until initial data arrives
+if !state.read().data.has_value() {
+    return false;
+}
+```
+
+### Local storage via `GlobalAppSettings`
+
+Used for lightweight client-side persistence:
+
+```rust
+use dioxus_utils::js::GlobalAppSettings;
+
+const STORAGE_KEY: &str = "client-view-search";
+
+pub fn get() -> Vec<String> {
+    let result = GlobalAppSettings::get_local_storage().get(STORAGE_KEY);
+    result
+        .unwrap_or_default()
+        .split(';')
+        .map(|itm| itm.to_string())
+        .collect()
+}
+
+pub fn save(items: &[String]) {
+    let joined = items.join(";");
+    GlobalAppSettings::get_local_storage().set(STORAGE_KEY, joined.as_str());
+}
+```
+
+### Background loops with `js::sleep`
+
+Used to throttle refresh loops:
+
+```rust
+use dioxus_utils::js::sleep;
+use std::time::Duration;
+
+loop {
+    refresh_data(cs).await;
+    sleep(Duration::from_secs(3)).await;
+}
+```
+
+### Console logging
+
+Used for lightweight error logging in async loops:
+
+```rust
+dioxus_utils::console_log(
+    format!("Error reading background data. Err:{:?}", err).as_str(),
+);
+```
+
+### JavaScript eval for UI helpers
+
+Used in the toast helper to run small JS snippets:
+
+```rust
+let js = format!("document.getElementById('toast-message').innerText = \"{}\";", msg);
+let _ = dioxus_utils::eval(js.as_str());
+```
+
+### UUID generation
+
+Used when creating new items with empty ids:
+
+```rust
+let id = if item.id.is_empty() {
+    dioxus_utils::generate_uuid()
+} else {
+    item.id.clone()
+};
+```
+
+### Date/time stamping
+
+Used when building export payloads:
+
+```rust
+let now = dioxus_utils::now_date_time();
+result.push_str(format!("Timestamp: {}", now.to_rfc3339()).as_str());
+```
+
+### Not used here (yet)
+
+- `DialogValue` is not currently used in this repo.
+- Focus helpers are implemented locally in `src/web/set_focus.rs`.
+
 ## Installation
 
 Add this to your `Cargo.toml`:
@@ -61,49 +221,40 @@ server = [..., "dioxus-utils/server"]
 
 ```rust
 use dioxus::prelude::*;
-use dioxus_utils::DataState;
+use dioxus_utils::{DataState, RenderState};
 
 fn MyComponent() -> Element {
     let mut data_state = use_signal(|| DataState::<Vec<String>>::new());
-    
-    use_effect(move || {
-        spawn(async move {
-            data_state.write().set_loading();
-            // Simulate async data fetch
-            let result = fetch_data().await;
-            match result {
-                Ok(data) => data_state.write().set_loaded(data),
-                Err(e) => data_state.write().set_error(e),
-            }
-        });
-    });
-    
-    rsx! {
-        match data_state.read().as_ref() {
-            RenderState::None => rsx! { "No data" },
-            RenderState::Loading => rsx! { "Loading..." },
-            RenderState::Loaded(data) => rsx! {
-                for item in data {
-                    div { "{item}" }
+
+    match data_state.read().as_ref() {
+        RenderState::None => {
+            spawn(async move {
+                data_state.write().set_loading();
+                let result = fetch_data().await;
+                match result {
+                    Ok(data) => data_state.write().set_value(data),
+                    Err(e) => data_state.write().set_error(e),
                 }
-            },
-            RenderState::Error(err) => rsx! { "Error: {err}" },
+            });
+            rsx! { "Loading..." }
         }
+        RenderState::Loading => rsx! { "Loading..." },
+        RenderState::Loaded(data) => rsx! {
+            for item in data {
+                div { "{item}" }
+            }
+        },
+        RenderState::Error(err) => rsx! { "Error: {err}" },
     }
 }
 ```
 
 **Key Methods:**
 - `new()`: Create empty state
-- `new_as_loaded(value)`: Create with initial loaded value
 - `set_loading()`: Mark as loading
-- `set_loaded(value)`: Set loaded data
+- `set_value(value)`: Set loaded data
 - `set_error(err)`: Set error state
-- `is_loading()`: Check if loading
-- `has_value()`: Check if has loaded value
-- `try_unwrap_as_loaded()`: Get reference to loaded value (Option)
-- `unwrap_as_loaded()`: Get reference to loaded value (panics if not loaded)
-- `had_data_loaded_once`: Boolean flag indicating if data was ever loaded
+- `reset()`: Return to `None` to trigger a reload
 
 ### RenderState
 
@@ -231,34 +382,8 @@ Available when `fullstack` feature is enabled.
 
 #### Set Focus
 
-`set_focus(id, set_focus_signal)` focuses an element by ID. Uses a signal to prevent multiple focus attempts.
-
-**Client**: Focuses DOM element
-**Server**: No-op
-
-**Example:**
-
-```rust
-use dioxus_utils::js::fullstack::set_focus;
-use dioxus::prelude::*;
-
-fn MyComponent() -> Element {
-    let mut should_focus = use_signal(|| false);
-    
-    rsx! {
-        input {
-            id: "my-input",
-            // ...
-        }
-        button {
-            onclick: move |_| {
-                set_focus("my-input", should_focus);
-            },
-            "Focus Input"
-        }
-    }
-}
-```
+This repo uses a local helper (`src/web/set_focus.rs`) instead of the `dioxus-utils`
+focus helper. If you want to switch to the library helper, add it and update usages.
 
 #### Web Local Storage
 
@@ -319,12 +444,11 @@ async fn delayed_action() {
 **Example:**
 
 ```rust
-use dioxus_utils::js::fullstack::GlobalAppSettings;
+use dioxus_utils::js::GlobalAppSettings;
 
-let settings = GlobalAppSettings::new();
-let href = settings.get_href(); // Full URL
-let origin = settings.get_origin(); // Origin URL
-let storage = settings.get_local_storage();
+let href = GlobalAppSettings::get_href(); // Full URL
+let origin = GlobalAppSettings::get_origin(); // Origin URL
+let storage = GlobalAppSettings::get_local_storage();
 ```
 
 ## Complete Example
