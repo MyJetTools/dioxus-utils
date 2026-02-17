@@ -6,6 +6,8 @@ mod reload_page;
 pub use reload_page::*;
 mod web_local_storage;
 pub use web_local_storage::*;
+mod fl_url;
+pub use fl_url::*;
 
 pub struct GlobalAppSettings {
     href: String,
