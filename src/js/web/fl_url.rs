@@ -67,6 +67,18 @@ impl FlUrl {
         self
     }
 
+    pub fn append_query_param_if_some<'n, 'v>(
+        self,
+        param_name: impl Into<StrOrString<'n>>,
+        value: Option<impl Into<StrOrString<'v>>>,
+    ) -> Self {
+        if let Some(value) = value {
+            return self.append_query_param(param_name, Some(value));
+        }
+
+        self
+    }
+
     fn get_path_and_query<'s>(&'s self) -> StrOrString<'s> {
         if self.query.len() == 0 {
             return self.path.as_str().into();
