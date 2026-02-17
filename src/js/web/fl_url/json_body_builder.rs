@@ -1,5 +1,7 @@
 use std::{collections::BTreeMap, fmt::Display};
 
+use super::super::HttpRequestBody;
+
 pub struct JsonBodyBuilder {
     fields: BTreeMap<String, String>,
 }
@@ -19,7 +21,7 @@ impl JsonBodyBuilder {
 
         self
     }
-    pub fn build(&self) -> Vec<u8> {
-        serde_json::to_vec(&self.fields).unwrap()
+    pub fn build(&self) -> HttpRequestBody {
+        HttpRequestBody::as_json(&self.fields)
     }
 }
