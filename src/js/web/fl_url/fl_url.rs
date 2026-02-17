@@ -100,17 +100,21 @@ impl FlUrl {
         body: impl Into<super::HttpRequestBody>,
     ) -> reqwest::Result<FlUrlResponse> {
         let body = body.into();
+        let content_type = body.get_content_type();
         let as_vec = body.into_vec();
 
         let client = reqwest::Client::new();
 
         let path_and_query = self.get_path_and_query();
         crate::console_log(format!("[POST] {}", path_and_query.as_str()));
-        let result = client
-            .post(path_and_query.as_str())
-            .body(as_vec)
-            .send()
-            .await?;
+
+        let mut req_builder = client.post(path_and_query.as_str());
+
+        if let Some(content_type) = content_type {
+            req_builder = req_builder.header("Content-Type", content_type.as_str());
+        }
+
+        let result = req_builder.body(as_vec).send().await?;
         Ok(FlUrlResponse { result })
     }
 }
