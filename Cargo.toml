@@ -8,6 +8,7 @@ edition = "2021"
 default = []
 fullstack = ["dioxus/fullstack"]
 server = ["tokio/time", "uuid"]
+web = ["dioxus/web"]
 
 
 [dependencies]
