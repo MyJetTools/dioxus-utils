@@ -4,7 +4,7 @@ pub struct FlUrl {
 
 impl FlUrl {
     pub fn new(path: &str) -> Self {
-        let path = if !path.starts_with("http") {
+        let path = if path.starts_with("http") {
             path.to_string()
         } else {
             let mut full_path = super::GlobalAppSettings::new().origin;
@@ -47,4 +47,14 @@ impl FlUrl {
 
 pub struct FlUrlResponse {
     pub result: reqwest::Response,
+}
+
+impl FlUrlResponse {
+    pub fn get_status_code(&self) -> u16 {
+        self.result.status().as_u16()
+    }
+
+    pub async fn get_body_as_text(self) -> reqwest::Result<String> {
+        self.result.text().await
+    }
 }
