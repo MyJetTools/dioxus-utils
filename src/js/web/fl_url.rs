@@ -50,10 +50,10 @@ impl FlUrl {
     ) -> Self {
         let param_name = param_name.into();
 
-        if self.path.len() == 0 {
-            self.path.push('?');
+        if self.query.len() == 0 {
+            self.query.push('?');
         } else {
-            self.path.push('&');
+            self.query.push('&');
         }
 
         url_utils::encode_to_url_string_and_copy(&mut self.query, param_name.as_str());
