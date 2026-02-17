@@ -43,6 +43,19 @@ impl FlUrl {
 
         Ok(FlUrlResponse { result })
     }
+
+    pub async fn post(
+        &self,
+        body: impl Into<super::HttpRequestBody>,
+    ) -> reqwest::Result<FlUrlResponse> {
+        let body = body.into();
+        let as_vec = body.into_vec();
+
+        let client = reqwest::Client::new();
+
+        let result = client.post(self.path.as_str()).body(as_vec).send().await?;
+        Ok(FlUrlResponse { result })
+    }
 }
 
 pub struct FlUrlResponse {
