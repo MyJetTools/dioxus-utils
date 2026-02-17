@@ -1,5 +1,8 @@
+use rust_extensions::StrOrString;
+
 pub struct FlUrl {
     path: String,
+    query: String,
 }
 
 impl FlUrl {
@@ -21,7 +24,10 @@ impl FlUrl {
             full_path
         };
 
-        Self { path }
+        Self {
+            path,
+            query: Default::default(),
+        }
     }
 
     pub fn append_path_segment(mut self, path_segment: &str) -> Self {
@@ -37,9 +43,42 @@ impl FlUrl {
         self
     }
 
+    pub fn append_query_param<'n, 'v>(
+        mut self,
+        param_name: impl Into<StrOrString<'n>>,
+        value: Option<impl Into<StrOrString<'v>>>,
+    ) -> Self {
+        let param_name = param_name.into();
+
+        if self.path.len() == 0 {
+            self.path.push('?');
+        } else {
+            self.path.push('&');
+        }
+
+        url_utils::encode_to_url_string_and_copy(&mut self.query, param_name.as_str());
+
+        if let Some(value) = value {
+            let value = value.into();
+            self.query.push('=');
+            url_utils::encode_to_url_string_and_copy(&mut self.query, value.as_str());
+        }
+
+        self
+    }
+
+    fn get_path_and_query<'s>(&'s self) -> StrOrString<'s> {
+        if self.query.len() == 0 {
+            return self.path.as_str().into();
+        }
+
+        format!("{}{}", self.path, self.query).into()
+    }
+
     pub async fn get(&self) -> reqwest::Result<FlUrlResponse> {
-        crate::console_log(format!("Doing request to {}", self.path));
-        let result = reqwest::get(self.path.as_str()).await?;
+        let path_and_query = self.get_path_and_query();
+        crate::console_log(format!("[GET] {}", path_and_query.as_str()));
+        let result = reqwest::get(path_and_query.as_str()).await?;
 
         Ok(FlUrlResponse { result })
     }
@@ -53,7 +92,13 @@ impl FlUrl {
 
         let client = reqwest::Client::new();
 
-        let result = client.post(self.path.as_str()).body(as_vec).send().await?;
+        let path_and_query = self.get_path_and_query();
+        crate::console_log(format!("[POST] {}", path_and_query.as_str()));
+        let result = client
+            .post(path_and_query.as_str())
+            .body(as_vec)
+            .send()
+            .await?;
         Ok(FlUrlResponse { result })
     }
 }
