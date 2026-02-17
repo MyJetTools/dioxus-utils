@@ -8,7 +8,7 @@ edition = "2021"
 default = []
 fullstack = ["dioxus/fullstack"]
 server = ["tokio/time", "uuid"]
-web = ["dioxus/web", "reqwest/json", "url-utils"]
+web = ["dioxus/web", "reqwest/json", "url-utils", "serde_json"]
 
 
 [dependencies]
@@ -22,3 +22,4 @@ reqwest = { version = "*", optional = true }
 tokio = { version = "*", optional = true }
 uuid = { version = "*", features = ["v4"], optional = true }
 url-utils = { git = "https://github.com/MyJetTools/url-utils.git", tag = "0.1.4", optional = true }
+serde_json = { version = "*", optional = true }

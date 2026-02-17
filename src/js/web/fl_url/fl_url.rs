@@ -10,7 +10,7 @@ impl FlUrl {
         let path = if path.starts_with("http") {
             path.to_string()
         } else {
-            let mut full_path = super::GlobalAppSettings::new().origin;
+            let mut full_path = super::super::GlobalAppSettings::new().origin;
             if !full_path.ends_with("/") {
                 full_path.push('/');
             }
@@ -97,7 +97,7 @@ impl FlUrl {
 
     pub async fn post(
         &self,
-        body: impl Into<super::HttpRequestBody>,
+        body: impl Into<super::super::HttpRequestBody>,
     ) -> reqwest::Result<FlUrlResponse> {
         let body = body.into();
         let as_vec = body.into_vec();
