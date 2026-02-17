@@ -1,6 +1,6 @@
 use std::{collections::BTreeMap, fmt::Display};
 
-use super::super::HttpRequestBody;
+use super::HttpRequestBody;
 
 pub struct JsonBodyBuilder {
     fields: BTreeMap<String, String>,

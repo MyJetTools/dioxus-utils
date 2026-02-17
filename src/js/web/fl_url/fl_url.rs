@@ -97,7 +97,7 @@ impl FlUrl {
 
     pub async fn post(
         &self,
-        body: impl Into<super::super::HttpRequestBody>,
+        body: impl Into<super::HttpRequestBody>,
     ) -> reqwest::Result<FlUrlResponse> {
         let body = body.into();
         let as_vec = body.into_vec();
