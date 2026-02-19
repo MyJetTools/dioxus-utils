@@ -3,7 +3,7 @@ use std::{collections::BTreeMap, fmt::Display};
 use super::HttpRequestBody;
 
 pub struct JsonBodyBuilder {
-    fields: BTreeMap<String, String>,
+    fields: BTreeMap<String, serde_json::Value>,
 }
 
 impl JsonBodyBuilder {
@@ -13,11 +13,9 @@ impl JsonBodyBuilder {
         }
     }
 
-    pub fn with_field(mut self, name: impl Display, value: impl Display) -> Self {
+    pub fn with_field(mut self, name: impl Display, value: impl Into<serde_json::Value>) -> Self {
         let name = format!("{}", name);
-        let value = format!("{}", value);
-
-        self.fields.insert(name, value);
+        self.fields.insert(name, value.into());
 
         self
     }
