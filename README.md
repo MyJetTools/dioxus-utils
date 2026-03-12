@@ -524,3 +524,11 @@ fn App() -> Element {
 ## Repository
 
 https://github.com/MyJetTools/dioxus-utils
+
+## `NotifyChildComponent<TValue>`
+
+A utility for delivering update events from a parent component to child components that manage their own state.
+
+The parent holds an instance (created via `new()`) and calls `notify_other_components(value)` after a mutation. Child components call `on_notify(callback)` as a hook — it subscribes via `use_effect` and fires the callback when a notification arrives. The child then resets its `DataState` to trigger a reload.
+
+Because `NotifyChildComponent<TValue>` wraps a `Signal` internally, it is `Copy + Clone` and can be passed directly as a component prop.
