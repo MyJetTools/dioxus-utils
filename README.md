@@ -12,6 +12,7 @@ A comprehensive utility library for Dioxus applications providing state manageme
 - **Dialog Management**: `DialogValue` for tracking form changes in dialogs
 - **Browser Utilities**: Console logging, JavaScript evaluation, UUID generation, date/time handling
 - **Fullstack Support**: Client/server compatible utilities for focus management, local storage, page reload, and async sleep
+- **Child Notification**: `NotifyChildComponent<TValue>` for delivering update events from parent to child components
 - **Global Settings**: Access to window location and local storage through `GlobalAppSettings`
 
 ## Usage in this repo
