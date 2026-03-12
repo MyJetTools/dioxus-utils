@@ -15,3 +15,5 @@ mod generate_uuid;
 pub use generate_uuid::*;
 mod now_date_time;
 pub use now_date_time::*;
+mod notify_child_components;
+pub use notify_child_components::*;
