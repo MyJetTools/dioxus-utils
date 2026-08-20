@@ -10,7 +10,7 @@ A comprehensive utility library for Dioxus applications providing state manageme
 
 - **State Management**: `DataState` and `RenderState` for managing async data loading states
 - **Dialog Management**: `DialogValue` for tracking form changes in dialogs
-- **Browser Utilities**: Console logging, JavaScript evaluation, UUID generation, date/time handling
+- **Browser Utilities**: Console logging and JavaScript evaluation
 - **Fullstack Support**: Client/server compatible utilities for focus management, local storage, page reload, and async sleep
 - **Child Notification**: `NotifyChildComponent<TValue>` for delivering update events from parent to child components
 - **Global Settings**: Access to window location and local storage through `GlobalAppSettings`
@@ -149,24 +149,18 @@ let js = format!("document.getElementById('toast-message').innerText = \"{}\";",
 let _ = dioxus_utils::eval(js.as_str());
 ```
 
-### UUID generation
+### UUID generation and date/time stamping
 
-Used when creating new items with empty ids:
+Both moved to `rust-extensions`, which handles wasm and native itself:
 
 ```rust
 let id = if item.id.is_empty() {
-    dioxus_utils::generate_uuid()
+    rust_extensions::uuid::generate_v4()
 } else {
     item.id.clone()
 };
-```
 
-### Date/time stamping
-
-Used when building export payloads:
-
-```rust
-let now = dioxus_utils::now_date_time();
+let now = rust_extensions::date_time::DateTimeAsMicroseconds::now();
 result.push_str(format!("Timestamp: {}", now.to_rfc3339()).as_str());
 ```
 
@@ -204,7 +198,8 @@ server = [..., "dioxus-utils/server"]
 
 **Available Features:**
 - `fullstack`: Enables fullstack utilities (focus, local storage, page reload, sleep)
-- `server`: Enables server-side implementations (UUID generation, date/time, console logging)
+- `server`: Enables server-side implementations (console logging, sleep, focus mock)
+- `web`: Enables web-only utilities (`GlobalAppSettings`, local storage, page reload, sleep, focus)
 
 ## Modules
 
@@ -346,36 +341,24 @@ use dioxus_utils::eval;
 let result = eval("Math.max(1, 2, 3)");
 ```
 
-### UUID Generation
+### UUID and Date/Time (moved to `rust-extensions`)
 
-`generate_uuid()` generates a UUID v4 string.
-
-**Client**: Uses `crypto.randomUUID()` via JavaScript
-**Server**: Uses `uuid` crate
+`generate_uuid()`, `now_date_time()` and `now_local_date_time()` have been removed - `rust-extensions`
+provides both, with the wasm/native split handled inside it.
 
 **Example:**
 
 ```rust
-use dioxus_utils::generate_uuid;
+use rust_extensions::date_time::DateTimeAsMicroseconds;
 
-let id = generate_uuid();
+let id = rust_extensions::uuid::generate_v4();
 // Returns: "550e8400-e29b-41d4-a716-446655440000"
+
+let now = DateTimeAsMicroseconds::now();
 ```
 
-### Date/Time Utilities
-
-`now_date_time()` returns current date/time as `DateTimeAsMicroseconds` from `rust-extensions`.
-
-**Client**: Uses JavaScript `Date().toISOString()`
-**Server**: Uses system time
-
-**Example:**
-
-```rust
-use dioxus_utils::now_date_time;
-
-let now = now_date_time();
-```
+On non-wasm targets `rust_extensions::uuid::generate_v4()` requires the `rnd` feature of
+`rust-extensions`.
 
 ### Fullstack Utilities
 
@@ -457,8 +440,7 @@ let storage = GlobalAppSettings::get_local_storage();
 ```rust
 use dioxus::prelude::*;
 use dioxus_utils::{
-    DataState, RenderState, DialogValue,
-    console_log, generate_uuid, now_date_time,
+    DataState, RenderState, DialogValue, console_log,
 };
 use dioxus_utils::js::fullstack::*;
 
@@ -488,7 +470,7 @@ fn App() -> Element {
         
         button {
             onclick: move |_| {
-                let id = generate_uuid();
+                let id = rust_extensions::uuid::generate_v4();
                 console_log(&format!("Created user with ID: {}", id));
             },
             "Create User"
@@ -502,10 +484,9 @@ fn App() -> Element {
 - `dioxus`: Core Dioxus framework
 - `web-sys`: WebAssembly bindings for web APIs
 - `js-sys`: JavaScript bindings
-- `rust-extensions`: Utility extensions (for DateTimeAsMicroseconds)
+- `rust-extensions`: Utility extensions (`StrOrString`, uuid and date/time helpers)
 - `gloo-timers`: Timer utilities for web
 - `tokio`: Async runtime (optional, for server feature)
-- `uuid`: UUID generation (optional, for server feature)
 
 ## Platform Support
 

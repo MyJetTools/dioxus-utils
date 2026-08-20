@@ -7,8 +7,8 @@ edition = "2021"
 [features]
 default = []
 fullstack = ["dioxus/fullstack"]
-server = ["tokio/time", "uuid"]
-web = ["dioxus/web", "reqwest/json", "url-utils", "serde_json"]
+server = ["tokio/time"]
+web = ["dioxus/web"]
 
 
 [dependencies]
@@ -17,9 +17,5 @@ web-sys = { version = "*", features = ["Storage"] }
 js-sys = { version = "*" }
 rust-extensions = { tag = "0.1.5", git = "https://github.com/MyJetTools/rust-extensions.git" }
 gloo-timers = { version = "*", features = ["futures"] }
-reqwest = { version = "*", optional = true }
 
 tokio = { version = "*", optional = true }
-uuid = { version = "*", features = ["v4"], optional = true }
-url-utils = { git = "https://github.com/MyJetTools/url-utils.git", tag = "0.1.4", optional = true }
-serde_json = { version = "*", optional = true }
