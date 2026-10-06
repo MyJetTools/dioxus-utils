@@ -13,3 +13,5 @@ mod eval;
 pub use eval::*;
 mod notify_child_components;
 pub use notify_child_components::*;
+mod panic_hook;
+pub use panic_hook::*;

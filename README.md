@@ -10,7 +10,7 @@ A comprehensive utility library for Dioxus applications providing state manageme
 
 - **State Management**: `DataState` and `RenderState` for managing async data loading states
 - **Dialog Management**: `DialogValue` for tracking form changes in dialogs
-- **Browser Utilities**: Console logging (`log`, `debug`, `info`, `warn`, `error`) and JavaScript evaluation
+- **Browser Utilities**: Console logging (`log`, `debug`, `info`, `warn`, `error`), a panic hook which makes panics visible in release builds, and JavaScript evaluation
 - **Browser Storage**: `LOCAL_STORAGE` and `SESSION_STORAGE` objects - the way to access `localStorage` / `sessionStorage` in client-side (`web`) apps
 - **Fullstack Support**: Client/server compatible utilities for focus management, local storage, page reload, and async sleep
 - **Child Notification**: `NotifyChildComponent<TValue>` for delivering update events from parent to child components
@@ -146,6 +146,21 @@ dioxus_utils::console_log(
 
 `console_debug`, `console_info`, `console_warn` and `console_error` write with the matching
 console level - see **Console Logging** below.
+
+### Panic hook in `main()`
+
+Every client app installs the panic hook first thing in `main()`. It is what shows a panic in the
+browser console of a release (production) build - its text and the file, line and column it
+happened at:
+
+```rust
+fn main() {
+    dioxus_utils::set_panic_hook();
+    dioxus::launch(App);
+}
+```
+
+See **Panic Hook** below.
 
 ### JavaScript eval for UI helpers
 
@@ -349,6 +364,36 @@ console_error(format!("Error reading background data. Err:{:?}", err));
 
 Chrome DevTools shows `console.debug` messages only when the "Verbose" level is enabled.
 
+### Panic Hook
+
+`set_panic_hook()` writes every panic to the browser console as an error `panic: <text>`, with the
+place of the panic on the next line:
+
+```text
+panic: called `Result::unwrap()` on an `Err` value: "boom"
+    at src/main.rs:42:10
+```
+
+Call it once in `main()`, before the app is launched:
+
+```rust
+fn main() {
+    dioxus_utils::set_panic_hook();
+    dioxus::launch(App);
+}
+```
+
+- **Release build**: this is what makes panics readable. Dioxus 0.7 installs no panic hook in a
+  release build, so without `set_panic_hook()` a panic leaves only `RuntimeError: unreachable` in
+  the browser console - no text and no place.
+- **Debug build** (`dx serve`): Dioxus installs its own panic hook at launch, which replaces this
+  one - the panic is printed in the Dioxus format, with a stack trace.
+- **Server** (`server` feature): does nothing - a panic is already printed to stderr.
+- **Call stack**: the line `at <file>:<line>:<column>` is the place of the panic itself. The stack
+  trace which the browser attaches to the console entry has only numbered wasm frames
+  (`wasm-function[2469]`) unless the app is built with `dx build --release --keep-names`, which
+  keeps function names in the wasm binary (+24% of uncompressed wasm on a small test app).
+
 ### JavaScript Evaluation
 
 `eval(js)` evaluates JavaScript code. On server, returns `JsValue::NULL`.
@@ -429,8 +474,8 @@ let draft = load(SESSION_STORAGE, "draft");
 - If the storage can not be obtained (no `window`, the browser returns `null`, or the browser denies
   access - blocked site data, a sandboxed iframe), `dioxus Local storage is not found: <reason>` or
   `dioxus Session storage is not found: <reason>` is written with `console_error`, and then the call
-  panics with the same message. The console line is what stays visible in a release build:
-  Dioxus 0.7 prints panics to the browser console only in debug builds.
+  panics with the same message. The console line is written separately because a release build
+  prints no panic text unless the app has called `set_panic_hook()` - see **Panic Hook** above.
 - `GlobalAppSettings::get_local_storage()` is kept for compatibility and returns `LOCAL_STORAGE`.
 
 ### Fullstack Utilities
