@@ -2,9 +2,10 @@ use std::thread::LocalKey;
 
 use js_sys::wasm_bindgen::JsValue;
 
-// web_sys::Storage is a JS object (!Send + !Sync), so it can not live in a `static` or in a LazyLock.
-// thread_local! is the lazy static which works for it: the storage is resolved on first access
-// and reused after that.
+// thread_local! is the lazy static chosen here: the storage is resolved on first access and reused
+// after that. A `static` LazyLock would work as well, but only where web_sys::Storage is
+// Send + Sync - wasm-bindgen implements both for JsValue only without the `atomics` target
+// feature. thread_local! does not depend on that.
 thread_local! {
     static LOCAL: web_sys::Storage = open("Local", web_sys::Window::local_storage);
     static SESSION: web_sys::Storage = open("Session", web_sys::Window::session_storage);

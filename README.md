@@ -16,14 +16,14 @@ A comprehensive utility library for Dioxus applications providing state manageme
 - **Child Notification**: `NotifyChildComponent<TValue>` for delivering update events from parent to child components
 - **Global Settings**: Access to window location through `GlobalAppSettings`
 
-## Usage in this repo
+## Common usage
 
-This project uses a subset of `dioxus-utils` APIs. The examples below mirror the exact
-patterns in the codebase to reduce drift.
+The patterns an application needs most often. Each API they use is described under
+**Modules** below.
 
 ### Data loading with `DataState` / `RenderState`
 
-Best practice here is to keep loading logic in a `get_data` helper and keep the
+Best practice is to keep loading logic in a `get_data` helper and keep the
 component focused on rendering:
 
 ```rust
@@ -68,18 +68,21 @@ fn get_data<'s>(
 }
 ```
 
-After mutations (save/delete), the code resets the data so it reloads:
+`VadSettingsState` (a struct with a `data: DataState<VadSettingsData>` field and its own `set_data`),
+`crate::api::…` and `crate::components::…` are the application's own code.
+
+After a mutation (save/delete), reset the data so that it is loaded again:
 
 ```rust
 state.write().data.reset();
 ```
 
-#### DataState helpers used here
+#### More `DataState` helpers
 
-Some pages use additional helpers beyond `set_value`:
+Helpers beyond `set_value`:
 
 ```rust
-// Mark data as loaded without changing the payload type
+// Mark as loaded when there is no payload - `DataState<()>`
 state.write().data.set_loaded(());
 
 // Read only when loaded, otherwise fall back
@@ -164,12 +167,15 @@ See **Panic Hook** below.
 
 ### JavaScript eval for UI helpers
 
-Used in the toast helper to run small JS snippets:
+Used to run small JS snippets, for example in a toast helper:
 
 ```rust
 let js = format!("document.getElementById('toast-message').innerText = \"{}\";", msg);
 let _ = dioxus_utils::eval(js.as_str());
 ```
+
+`eval` panics if the script throws, and `msg` goes into the script as is - see
+[JavaScript Evaluation](#javascript-evaluation) below.
 
 ### UUID generation and date/time stamping
 
@@ -186,11 +192,6 @@ let now = rust_extensions::date_time::DateTimeAsMicroseconds::now();
 result.push_str(format!("Timestamp: {}", now.to_rfc3339()).as_str());
 ```
 
-### Not used here (yet)
-
-- `DialogValue` is not currently used in this repo.
-- Focus helpers are implemented locally in `src/web/set_focus.rs`.
-
 ## Installation
 
 Add this to your `Cargo.toml`:
@@ -201,6 +202,27 @@ dioxus-utils = { tag = "{last_tag}", git = "https://github.com/MyJetTools/dioxus
 ```
 
 ### Feature Flags
+
+`web` and `fullstack` are mutually exclusive - choose one of the two:
+
+- `web` - for a client-side (browser only) application;
+- `fullstack` - for a fullstack application, plus `server` in the server build.
+
+Both put their items under the same path `dioxus_utils::js::…` (`GlobalAppSettings`, `sleep`,
+`reload_page`, `set_focus`, `WebLocalStorage`), so `dioxus-utils` does not compile with the two
+enabled together. Cargo features are additive: if two crates of one build ask for different ones,
+both get enabled and the build fails. Without either of them `dioxus_utils::js` is empty.
+
+#### For Client-Side Applications
+
+```toml
+[dependencies]
+dioxus-utils = { 
+    tag = "{last_tag}", 
+    git = "https://github.com/MyJetTools/dioxus-utils.git", 
+    features = ["web"] 
+}
+```
 
 #### For Fullstack Applications
 
@@ -219,9 +241,9 @@ server = [..., "dioxus-utils/server"]
 ```
 
 **Available Features:**
-- `fullstack`: Enables fullstack utilities (focus, local storage, page reload, sleep)
+- `fullstack`: Enables fullstack utilities (`GlobalAppSettings`, focus, local storage, page reload, sleep). Not together with `web`
 - `server`: Enables server-side implementations (console logging, sleep, focus mock)
-- `web`: Enables web-only utilities (`GlobalAppSettings`, `LOCAL_STORAGE` / `SESSION_STORAGE`, page reload, sleep, focus)
+- `web`: Enables web-only utilities (`GlobalAppSettings`, `LOCAL_STORAGE` / `SESSION_STORAGE`, page reload, sleep, focus). Not together with `fullstack`
 
 ## Modules
 
@@ -243,8 +265,9 @@ use dioxus_utils::{DataState, RenderState};
 
 fn MyComponent() -> Element {
     let mut data_state = use_signal(|| DataState::<Vec<String>>::new());
+    let data_state_ra = data_state.read();
 
-    match data_state.read().as_ref() {
+    match data_state_ra.as_ref() {
         RenderState::None => {
             spawn(async move {
                 data_state.write().set_loading();
@@ -318,7 +341,8 @@ fn EditDialog() -> Element {
         button {
             onclick: move |_| {
                 // Reset to initial value
-                name.write().init(name.read().get_init_value().clone());
+                let init_value = name.read().get_init_value().clone();
+                name.write().init(init_value);
             },
             "Cancel"
         }
@@ -349,6 +373,9 @@ console level:
 | `console_error` | `console.error` | stderr |
 
 Each of them takes the message as `&str`, `String` or `&String`.
+
+In the browser all of them write through `eval`, so the page has to allow it - see
+[JavaScript Evaluation](#javascript-evaluation) below.
 
 **Example:**
 
@@ -393,10 +420,13 @@ fn main() {
   trace which the browser attaches to the console entry has only numbered wasm frames
   (`wasm-function[2469]`) unless the app is built with `dx build --release --keep-names`, which
   keeps function names in the wasm binary (+24% of uncompressed wasm on a small test app).
+- **`eval` has to be allowed**: the hook prints through `console_error`, so on a page which blocks
+  `eval` it prints nothing - see [JavaScript Evaluation](#javascript-evaluation) below.
 
 ### JavaScript Evaluation
 
-`eval(js)` evaluates JavaScript code. On server, returns `JsValue::NULL`.
+`eval(js)` evaluates JavaScript code and returns its result as a `JsValue`. On server, returns
+`JsValue::NULL` and runs nothing.
 
 **Example:**
 
@@ -405,6 +435,32 @@ use dioxus_utils::eval;
 
 let result = eval("Math.max(1, 2, 3)");
 ```
+
+**`eval` panics if the script throws.** It is `js_sys::eval(js).unwrap()`, so a syntax error or an
+exception in the script becomes a Rust panic. Text put into a script with `format!` has to be
+escaped first: a quote or a line break in it is a syntax error.
+
+**Requirement: the page has to allow `eval`.** In the browser all of these run JavaScript through
+`eval`:
+
+- `eval`
+- `console_log`, `console_debug`, `console_info`, `console_warn`, `console_error`
+- the hook installed by `set_panic_hook()` - it prints with `console_error`
+- `js::reload_page`
+- `js::set_focus`
+- `LOCAL_STORAGE` / `SESSION_STORAGE` when the storage is not available - the error is printed with
+  `console_error`
+
+A `Content-Security-Policy` whose `script-src` (or `default-src`) has no `'unsafe-eval'` blocks
+`eval`. `'wasm-unsafe-eval'` is not enough: with it the wasm app starts and works, but `eval` is
+still blocked. On such a page:
+
+- every call from the list above panics, `console_log` included;
+- the panic hook can not report it: its own `console_error` panics inside the hook, and the browser
+  console shows only `Uncaught RuntimeError: unreachable` - no panic text and no place.
+
+So either the page keeps `'unsafe-eval'` in `script-src`, or the app does not call anything from
+the list. On the server (`server` feature) none of this applies - nothing is evaluated there.
 
 ### UUID and Date/Time (moved to `rust-extensions`)
 
@@ -480,12 +536,46 @@ let draft = load(SESSION_STORAGE, "draft");
 
 ### Fullstack Utilities
 
-Available when `fullstack` feature is enabled.
+Available when `fullstack` feature is enabled. `set_focus`, `reload_page` and `sleep` are available
+with the `web` feature as well. Whichever feature is enabled, the path is `dioxus_utils::js::…`.
 
 #### Set Focus
 
-This repo uses a local helper (`src/web/set_focus.rs`) instead of the `dioxus-utils`
-focus helper. If you want to switch to the library helper, add it and update usages.
+`set_focus` moves the keyboard focus to the element with the given `id`:
+
+```rust
+pub fn set_focus(id: &str, set_focus: Signal<bool>)
+```
+
+- `id` - the `id` attribute of the element. It is put into the script as is, so it must not contain
+  `'` or `\`.
+- `set_focus` - a flag which makes the call work once: if it is already `true` the call does
+  nothing, otherwise it is set to `true` and the focus is requested. The call works again only after
+  the signal is set back to `false`.
+
+The focus is set 100 ms after the call, so the element may be rendered by the same update which
+calls `set_focus`. If there is no element with that `id` by then, `Element not found` is written to
+the browser console.
+
+**Client**: Runs JavaScript through `eval` - see [JavaScript Evaluation](#javascript-evaluation)
+**Server**: Does nothing
+
+**Example:**
+
+```rust
+use dioxus::prelude::*;
+use dioxus_utils::js::set_focus;
+
+#[component]
+fn LoginForm() -> Element {
+    let focused = use_signal(|| false);
+    use_effect(move || set_focus("login-input", focused));
+
+    rsx! {
+        input { id: "login-input" }
+    }
+}
+```
 
 #### Web Local Storage
 
@@ -497,9 +587,9 @@ focus helper. If you want to switch to the library helper, add it and update usa
 **Example:**
 
 ```rust
-use dioxus_utils::js::fullstack::WebLocalStorage;
+use dioxus_utils::js::{GlobalAppSettings, WebLocalStorage};
 
-let storage = GlobalAppSettings::new().get_local_storage();
+let storage: WebLocalStorage = GlobalAppSettings::get_local_storage();
 storage.set("key", "value");
 let value = storage.get("key");
 storage.delete("key");
@@ -509,10 +599,13 @@ storage.delete("key");
 
 `reload_page()` reloads the current page.
 
+**Client**: Runs `location.reload()` through `eval` - see [JavaScript Evaluation](#javascript-evaluation)
+**Server**: Does nothing
+
 **Example:**
 
 ```rust
-use dioxus_utils::js::fullstack::reload_page;
+use dioxus_utils::js::reload_page;
 
 button {
     onclick: move |_| reload_page(),
@@ -530,7 +623,7 @@ button {
 **Example:**
 
 ```rust
-use dioxus_utils::js::fullstack::sleep;
+use dioxus_utils::js::sleep;
 use std::time::Duration;
 
 async fn delayed_action() {
@@ -541,17 +634,25 @@ async fn delayed_action() {
 
 ### Global App Settings
 
-`GlobalAppSettings` provides access to window location and local storage.
+`GlobalAppSettings` provides access to window location and local storage. Available with the `web`
+or the `fullstack` feature.
 
 **Example:**
 
 ```rust
 use dioxus_utils::js::GlobalAppSettings;
 
-let href = GlobalAppSettings::get_href(); // Full URL
-let origin = GlobalAppSettings::get_origin(); // Origin URL
+let settings = GlobalAppSettings::new();
+let href = settings.get_href(); // Full URL
+let origin = settings.get_origin(); // Origin URL
+
 let storage = GlobalAppSettings::get_local_storage();
 ```
+
+- `GlobalAppSettings::new()` reads `window.location` at the moment of the call. On the server
+  (`server` feature) it holds empty strings.
+- `get_href(&self) -> &str` and `get_origin(&self) -> &str` are methods of that instance.
+- `get_local_storage()` is an associated function - it is called without an instance.
 
 In client-side (`web`) apps use `LOCAL_STORAGE` / `SESSION_STORAGE` for storage access - see
 **Local and Session Storage** above.
@@ -563,7 +664,7 @@ use dioxus::prelude::*;
 use dioxus_utils::{
     DataState, RenderState, DialogValue, console_log,
 };
-use dioxus_utils::js::fullstack::*;
+use dioxus_utils::js::*;
 
 fn App() -> Element {
     let mut users = use_signal(|| DataState::<Vec<User>>::new());
