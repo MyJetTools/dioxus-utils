@@ -416,6 +416,12 @@ fn main() {
 - **Debug build** (`dx serve`): Dioxus installs its own panic hook at launch, which replaces this
   one - the panic is printed in the Dioxus format, with a stack trace.
 - **Server** (`server` feature): does nothing - a panic is already printed to stderr.
+- **The hook only reports**: it does not change what happens to the app after a panic. A panic in an
+  event handler loses that one event and the app goes on. A panic during render or in an async task
+  (`spawn`) freezes the app: the page stays on screen but nothing updates until it is reloaded. The
+  same happens after a panic in a handler while a `signal.write()` is held - the signal stays
+  locked, and the next render which reads it panics. Later `already borrowed` panics in the console
+  are consequences: the first `panic:` line is the cause.
 - **Call stack**: the line `at <file>:<line>:<column>` is the place of the panic itself. The stack
   trace which the browser attaches to the console entry has only numbered wasm frames
   (`wasm-function[2469]`) unless the app is built with `dx build --release --keep-names`, which
