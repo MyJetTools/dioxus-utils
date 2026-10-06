@@ -10,10 +10,11 @@ A comprehensive utility library for Dioxus applications providing state manageme
 
 - **State Management**: `DataState` and `RenderState` for managing async data loading states
 - **Dialog Management**: `DialogValue` for tracking form changes in dialogs
-- **Browser Utilities**: Console logging and JavaScript evaluation
+- **Browser Utilities**: Console logging (`log`, `debug`, `info`, `warn`, `error`) and JavaScript evaluation
+- **Browser Storage**: `LOCAL_STORAGE` and `SESSION_STORAGE` objects - the way to access `localStorage` / `sessionStorage` in client-side (`web`) apps
 - **Fullstack Support**: Client/server compatible utilities for focus management, local storage, page reload, and async sleep
 - **Child Notification**: `NotifyChildComponent<TValue>` for delivering update events from parent to child components
-- **Global Settings**: Access to window location and local storage through `GlobalAppSettings`
+- **Global Settings**: Access to window location through `GlobalAppSettings`
 
 ## Usage in this repo
 
@@ -92,17 +93,18 @@ if !state.read().data.has_value() {
 }
 ```
 
-### Local storage via `GlobalAppSettings`
+### Local and session storage via `LOCAL_STORAGE` / `SESSION_STORAGE`
 
-Used for lightweight client-side persistence:
+Used for lightweight client-side persistence. In a client-side (`web`) app always go through
+these two objects - do not take the storage from `web_sys::window()` yourself:
 
 ```rust
-use dioxus_utils::js::GlobalAppSettings;
+use dioxus_utils::js::LOCAL_STORAGE;
 
 const STORAGE_KEY: &str = "client-view-search";
 
 pub fn get() -> Vec<String> {
-    let result = GlobalAppSettings::get_local_storage().get(STORAGE_KEY);
+    let result = LOCAL_STORAGE.get(STORAGE_KEY);
     result
         .unwrap_or_default()
         .split(';')
@@ -112,9 +114,11 @@ pub fn get() -> Vec<String> {
 
 pub fn save(items: &[String]) {
     let joined = items.join(";");
-    GlobalAppSettings::get_local_storage().set(STORAGE_KEY, joined.as_str());
+    LOCAL_STORAGE.set(STORAGE_KEY, joined.as_str());
 }
 ```
+
+`SESSION_STORAGE` has the same methods - see **Local and Session Storage** below.
 
 ### Background loops with `js::sleep`
 
@@ -139,6 +143,9 @@ dioxus_utils::console_log(
     format!("Error reading background data. Err:{:?}", err).as_str(),
 );
 ```
+
+`console_debug`, `console_info`, `console_warn` and `console_error` write with the matching
+console level - see **Console Logging** below.
 
 ### JavaScript eval for UI helpers
 
@@ -199,7 +206,7 @@ server = [..., "dioxus-utils/server"]
 **Available Features:**
 - `fullstack`: Enables fullstack utilities (focus, local storage, page reload, sleep)
 - `server`: Enables server-side implementations (console logging, sleep, focus mock)
-- `web`: Enables web-only utilities (`GlobalAppSettings`, local storage, page reload, sleep, focus)
+- `web`: Enables web-only utilities (`GlobalAppSettings`, `LOCAL_STORAGE` / `SESSION_STORAGE`, page reload, sleep, focus)
 
 ## Modules
 
@@ -315,19 +322,32 @@ fn EditDialog() -> Element {
 
 ### Console Logging
 
-`console_log()` provides platform-agnostic logging that works on both client and server.
+Platform-agnostic logging that works on both client and server. There is a function for each
+console level:
 
-**Client**: Logs to browser console via JavaScript
-**Server**: Logs to stdout
+| Function | Client (browser console) | Server (`server` feature) |
+| --- | --- | --- |
+| `console_log` | `console.log` | stdout |
+| `console_debug` | `console.debug` | stdout |
+| `console_info` | `console.info` | stdout |
+| `console_warn` | `console.warn` | stderr |
+| `console_error` | `console.error` | stderr |
+
+Each of them takes the message as `&str`, `String` or `&String`.
 
 **Example:**
 
 ```rust
-use dioxus_utils::console_log;
+use dioxus_utils::{console_error, console_info, console_log, console_warn};
 
 console_log("Debug message");
 console_log(format!("User ID: {}", user_id));
+console_info("Connected");
+console_warn(format!("Retrying in {} seconds", delay));
+console_error(format!("Error reading background data. Err:{:?}", err));
 ```
+
+Chrome DevTools shows `console.debug` messages only when the "Verbose" level is enabled.
 
 ### JavaScript Evaluation
 
@@ -359,6 +379,59 @@ let now = DateTimeAsMicroseconds::now();
 
 On non-wasm targets `rust_extensions::uuid::generate_v4()` requires the `rnd` feature of
 `rust-extensions`.
+
+### Local and Session Storage
+
+Available when `web` feature is enabled (client-side apps).
+
+`LOCAL_STORAGE` and `SESSION_STORAGE` are the objects to use for any access to the browser
+`localStorage` / `sessionStorage`. Do not take the storage from `web_sys::window()` directly.
+
+| Object | Browser storage | Lifetime of the data |
+| --- | --- | --- |
+| `dioxus_utils::js::LOCAL_STORAGE` | `window.localStorage` | Kept until deleted; shared by all tabs of the site |
+| `dioxus_utils::js::SESSION_STORAGE` | `window.sessionStorage` | Per tab: survives a page refresh, gone when the tab is closed |
+
+Both are `static` objects of type `WebStorage` with the same methods:
+
+- `get(key) -> Option<String>`: `None` when there is no such key
+- `set(key, value)`
+- `delete(key)`
+
+**Example:**
+
+```rust
+use dioxus_utils::js::{LOCAL_STORAGE, SESSION_STORAGE};
+
+LOCAL_STORAGE.set("theme", "dark");
+let theme = LOCAL_STORAGE.get("theme"); // Some("dark")
+
+SESSION_STORAGE.set("draft", "some text");
+SESSION_STORAGE.delete("draft");
+```
+
+`WebStorage` is `Copy`, so code which has to work with either storage takes it as a parameter:
+
+```rust
+use dioxus_utils::js::{WebStorage, SESSION_STORAGE};
+
+fn load(storage: WebStorage, key: &str) -> String {
+    storage.get(key).unwrap_or_default()
+}
+
+let draft = load(SESSION_STORAGE, "draft");
+```
+
+**How it works:**
+
+- Nothing is requested from the browser until the first `get` / `set` / `delete`. That first call
+  obtains the browser storage object once, and every later call reuses it.
+- If the storage can not be obtained (no `window`, the browser returns `null`, or the browser denies
+  access - blocked site data, a sandboxed iframe), `dioxus Local storage is not found: <reason>` or
+  `dioxus Session storage is not found: <reason>` is written with `console_error`, and then the call
+  panics with the same message. The console line is what stays visible in a release build:
+  Dioxus 0.7 prints panics to the browser console only in debug builds.
+- `GlobalAppSettings::get_local_storage()` is kept for compatibility and returns `LOCAL_STORAGE`.
 
 ### Fullstack Utilities
 
@@ -434,6 +507,9 @@ let href = GlobalAppSettings::get_href(); // Full URL
 let origin = GlobalAppSettings::get_origin(); // Origin URL
 let storage = GlobalAppSettings::get_local_storage();
 ```
+
+In client-side (`web`) apps use `LOCAL_STORAGE` / `SESSION_STORAGE` for storage access - see
+**Local and Session Storage** above.
 
 ## Complete Example
 

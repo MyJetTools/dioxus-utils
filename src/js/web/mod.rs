@@ -4,8 +4,8 @@ mod set_focus;
 pub use set_focus::*;
 mod reload_page;
 pub use reload_page::*;
-mod web_local_storage;
-pub use web_local_storage::*;
+mod web_storage;
+pub use web_storage::*;
 
 pub struct GlobalAppSettings {
     href: String,
@@ -45,10 +45,6 @@ impl GlobalAppSettings {
     }
 
     pub fn get_local_storage() -> super::WebLocalStorage {
-        return GlobalAppSettings::get_window()
-            .local_storage()
-            .unwrap()
-            .unwrap()
-            .into();
+        LOCAL_STORAGE
     }
 }
